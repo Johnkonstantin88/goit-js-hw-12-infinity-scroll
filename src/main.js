@@ -43,6 +43,7 @@ function onSubmit(e) {
   refs.gallery.innerHTML = '';
   refs.loader.hidden = false;
   currentPage = 1;
+  console.log(currentPage);
 
   const { searchQuery } = e.currentTarget.elements;
   searchQueryValue = searchQuery.value.trim().toLowerCase();
