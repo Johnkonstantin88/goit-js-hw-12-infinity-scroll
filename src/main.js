@@ -10,20 +10,24 @@ const refs = {
   form: document.querySelector('#search-form'),
   gallery: document.querySelector('.gallery'),
   loader: document.querySelector('.loader'),
-  loadButton: document.querySelector('#load-more-button'),
+  target: document.querySelector('.js-guard'),
 };
 
 refs.form.addEventListener('submit', onSubmit);
-refs.loadButton.addEventListener('click', onLoadMore);
 
 const loaderSpan = ' <span class="css-loader"></span>';
 refs.loader.insertAdjacentHTML('beforeend', loaderSpan);
 refs.loader.hidden = true;
-refs.loadButton.hidden = true;
 
 let currentPage = 1;
 let searchQueryValue = '';
 const picturesCountQuery = 15;
+
+const options = {
+  root: null,
+  rootMargin: '350px',
+  threshold: 1.0,
+};
 
 let lightboxGallery = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
@@ -31,18 +35,20 @@ let lightboxGallery = new SimpleLightbox('.gallery a', {
   captionDelay: 250,
 });
 
+let observer = new IntersectionObserver(onLoadMore, options);
+
 function onSubmit(e) {
   e.preventDefault();
+  observer.unobserve(refs.target);
   refs.gallery.innerHTML = '';
-  currentPage = 1;
   refs.loader.hidden = false;
+  currentPage = 1;
 
   const { searchQuery } = e.currentTarget.elements;
   searchQueryValue = searchQuery.value.trim().toLowerCase();
 
   if (searchQueryValue === '') {
     onError('Sorry, but you must enter your search query. Please try again.');
-    refs.loadButton.hidden = true;
 
     return;
   }
@@ -69,7 +75,7 @@ function onSubmit(e) {
       }
 
       if (totalHits > picturesCountQuery) {
-        refs.loadButton.hidden = false;
+        observer.observe(refs.target);
       }
 
       if (hits.length > 0) {
@@ -82,32 +88,39 @@ function onSubmit(e) {
     .catch(onError);
 }
 
-function onLoadMore() {
-  currentPage += 1;
-  refs.loader.hidden = false;
+function onLoadMore(entries) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      refs.loader.hidden = false;
+      currentPage += 1;
 
-  getPictures(currentPage, searchQueryValue, picturesCountQuery)
-    .then(response => {
-      const { hits } = response;
+      getPictures(currentPage, searchQueryValue, picturesCountQuery)
+        .then(response => {
+          const { hits } = response;
 
-      refs.gallery.insertAdjacentHTML('beforeend', markup(hits));
+          refs.gallery.insertAdjacentHTML('beforeend', markup(hits));
 
-      lightboxGallery.refresh();
+          lightboxGallery.refresh();
 
-      if (hits.length < picturesCountQuery) {
-        onWarning("We're sorry, but you've reached the end of search results.");
+          if (hits.length < picturesCountQuery) {
+            observer.unobserve(refs.target);
 
-        refs.loadButton.hidden = true;
-        refs.loader.hidden = true;
-      }
+            onWarning(
+              "We're sorry, but you've reached the end of search results."
+            );
 
-      if (hits.length > 0) {
-        onScroll();
-      }
+            refs.loader.hidden = true;
+          }
 
-      refs.loader.hidden = true;
-    })
-    .catch(onError);
+          if (hits.length > 0) {
+            onScroll();
+          }
+
+          refs.loader.hidden = true;
+        })
+        .catch(onError);
+    }
+  });
 }
 
 function onError(err = `${err.name}: ${err.message}`) {

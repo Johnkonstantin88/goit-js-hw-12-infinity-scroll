@@ -1,5 +1,4 @@
 import axios from 'axios';
-// const axios = require('axios');
 
 export async function getPictures(page = 1, query, per_page) {
   const API_KEY = '42027897-ca60981f5971518ff8fefcb8b';
