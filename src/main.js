@@ -81,10 +81,6 @@ async function onSubmit(e) {
       observer.observe(refs.target);
     }
 
-    if (hits.length > 0) {
-      onScroll();
-    }
-
     refs.loader.hidden = true;
     refs.form.reset();
   } catch (error) {
